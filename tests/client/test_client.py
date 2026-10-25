@@ -460,3 +460,30 @@ def test_client_decode_text_using_explicit_encoding():
         assert response.reason_phrase == "OK"
         assert response.encoding == "ISO-8859-1"
         assert response.text == text
+
+
+def test_elapsed_set_for_mock_transport():
+    """response.elapsed is available for pre-buffered MockTransport responses."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"ok")
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        response = client.get("http://example.com")
+
+    assert hasattr(response, "elapsed")
+    assert response.elapsed >= timedelta(0)
+
+
+@pytest.mark.anyio
+async def test_async_elapsed_set_for_mock_transport():
+    """response.elapsed is available for pre-buffered AsyncMockTransport responses."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"ok")
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        response = await client.get("http://example.com")
+
+    assert hasattr(response, "elapsed")
+    assert response.elapsed >= timedelta(0)

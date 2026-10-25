@@ -1019,6 +1019,14 @@ class Client(BaseClient):
         response.stream = BoundSyncStream(
             response.stream, response=response, start=start
         )
+        # If the transport returned a pre-buffered response (e.g. a mock handler
+        # that builds Response(content=...)), the stream is already closed and
+        # BoundSyncStream.close() will never be called.  Set elapsed now so
+        # that response.elapsed is always accessible after send().
+        if response.is_closed:
+            response.elapsed = datetime.timedelta(
+                seconds=time.perf_counter() - start
+            )
         self.cookies.extract_cookies(response)
         response.default_encoding = self._default_encoding
 
@@ -1734,6 +1742,11 @@ class AsyncClient(BaseClient):
         response.stream = BoundAsyncStream(
             response.stream, response=response, start=start
         )
+        # Same pre-buffered guard as in the sync path.
+        if response.is_closed:
+            response.elapsed = datetime.timedelta(
+                seconds=time.perf_counter() - start
+            )
         self.cookies.extract_cookies(response)
         response.default_encoding = self._default_encoding
 
